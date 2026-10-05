@@ -1,4 +1,4 @@
-# Mini AppSec Scanner — version Pro
+﻿# Mini AppSec Scanner — version Pro
 
 Scanner de posture de sécurité web (headers, HTTPS/certificat, cookies, ports) avec
 historique, authentification multi-utilisateurs et scans planifiés.
@@ -42,17 +42,27 @@ Dashboard (frontend, à part)
 
 ## Lancer le projet
 
-1. Crée le squelette Quarkus si ce n'est pas déjà fait (via https://code.quarkus.io ou `mvn quarkus:create`).
-2. Copie ces fichiers dans ton projet, en respectant l'arborescence `com.zizo.scanner.*`.
-3. Ajoute les dépendances de `pom-dependencies-a-ajouter.xml` dans ton `pom.xml`.
-4. Crée une base PostgreSQL locale (ou lance-la via Docker) et adapte `application.properties`.
-5. Génère les clés JWT :
-   ```
+Prérequis : Java 21, Docker (et Maven, ou le wrapper `mvnw` fourni).
+
+1. Clone le dépôt et place-toi dedans :
+```
+   git clone https://github.com/Zizo0569/mini-appsec-scanner-pro.git
+   cd mini-appsec-scanner-pro
+```
+2. Lance PostgreSQL avec Docker (les identifiants correspondent à `application.properties`) :
+```
+   docker run -d --name appsec-db -e POSTGRES_USER=scanner_user -e POSTGRES_PASSWORD=change-me -e POSTGRES_DB=appsec_scanner -p 5434:5432 postgres:16
+```
+3. Génère les clés JWT (elles ne sont pas dans le dépôt, volontairement) :
+```
    openssl genrsa -out src/main/resources/privateKey.pem 2048
    openssl rsa -in src/main/resources/privateKey.pem -pubout -out src/main/resources/publicKey.pem
-   ```
-6. Lance : `./mvnw quarkus:dev`
-
+```
+4. Démarre l'application :
+```
+   ./mvnw quarkus:dev
+```
+5. Ouvre http://localhost:8082/ : l'interface web permet de saisir une URL et d'afficher le résultat du scan.
 ## Tester rapidement
 
 ```powershell
