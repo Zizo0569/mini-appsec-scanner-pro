@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini AppSec Scanner</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 32px 16px; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { margin-top: 0; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: inherit; font-size: 16px; }
+  button { padding: 12px 20px; border: 0; border-radius: 8px; background: #3b82f6; color: #fff; font-size: 16px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  .card { background: #1e293b; border-radius: 12px; padding: 20px; margin-top: 20px; }
+  .score { font-size: 48px; font-weight: 700; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 600; }
+  .CRITIQUE, .ELEVE { background: #7f1d1d; color: #fecaca; }
+  .MOYEN { background: #78350f; color: #fde68a; }
+  .FAIBLE { background: #14532d; color: #bbf7d0; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  .ok { color: #4ade80; } .ko { color: #f87171; }
+  .err { color: #f87171; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mini AppSec Scanner</h1>
+  <p>Scanne uniquement des sites dont tu es propriétaire ou que tu es autorisé à tester.</p>
+  <form id="f">
+    <input id="url" type="url" placeholder="https://exemple.com" required>
+    <button id="btn">Scanner</button>
+  </form>
+  <div id="out"></div>
+</main>
+<script>
+const out = document.getElementById('out');
+const btn = document.getElementById('btn');
+
+function yn(v) { return `<span class="${v ? 'ok' : 'ko'}">${v ? 'Oui' : 'Non'}</span>`; }
+function list(items) {
+  if (!items.length) return '<li>Aucun</li>';
+  return items.map(i => `<li>${i.replace(/[<>&]/g, '')}</li>`).join('');
+}
+
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  out.innerHTML = '<div class="card">Scan en cours...</div>';
+  try {
+    const res = await fetch('/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: document.getElementById('url').value })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Erreur ' + res.status);
+
+    const ports = d.presentHeaders.filter(h => h.startsWith('PORT_OUVERT:')).map(h => 'Port ' + h.split(':')[1]);
+    const headers = d.presentHeaders.filter(h => !h.startsWith('PORT_OUVERT:'));
+
+    out.innerHTML = `
+      <div class="card">
+        <div class="score">${d.score}/100</div>
+        <span class="badge ${d.riskLevel}">${d.riskLevel}</span>
+        <p>${d.url.replace(/[<>&]/g, '')}</p>
+      </div>
+      <div class="card">
+        <h3>Headers présents</h3><ul>${list(headers)}</ul>
+        <h3>Headers manquants</h3><ul>${list(d.missingHeaders)}</ul>
+      </div>
+      <div class="card">
+        <h3>HTTPS et certificat</h3>
+        <ul>
+          <li>HTTPS utilisé : ${yn(d.usesHttps)}</li>
+          <li>Redirection HTTP vers HTTPS : ${yn(d.redirectsHttpToHttps)}</li>
+          <li>Certificat valide : ${yn(d.certificateValid)}</li>
+          <li>Expire dans : ${d.daysUntilCertExpiry} jours</li>
+        </ul>
+        <h3>Cookies</h3>
+        <ul>
+          <li>Secure : ${yn(d.cookiesSecure)}</li>
+          <li>HttpOnly : ${yn(d.cookiesHttpOnly)}</li>
+          <li>SameSite : ${yn(d.cookiesSameSite)}</li>
+        </ul>
+        <h3>Ports ouverts</h3><ul>${list(ports)}</ul>
+      </div>`;
+  } catch (err) {
+    out.innerHTML = `<div class="card err">${String(err.message).replace(/[<>&]/g, '')}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
