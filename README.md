@@ -2,7 +2,7 @@
 
 Scanner de posture de sécurité web (headers, HTTPS/certificat, cookies, ports) avec
 historique, authentification multi-utilisateurs et scans planifiés.
-Stack : **Java 17 + Quarkus + PostgreSQL**.
+Stack : **Java 21 + Quarkus + PostgreSQL**.
 
 ## Architecture
 
